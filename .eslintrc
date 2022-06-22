@@ -1,13 +1,41 @@
 {
+	"root": true,
 	"extends": [
 		"plugin:@wordpress/eslint-plugin/recommended",
-		"plugin:react-hooks/recommended"
+    "plugin:react-hooks/recommended"
 	],
 	"rules": {
-		"react-hooks/exhaustive-deps": [ "error", { "additionalHooks": "useSelect" } ],
-		"import/order": [ "error", { "groups": [ "builtin", [ "external", "unknown" ], "internal", "parent", "sibling", "index" ] } ],
+		"import/order": [
+			"error",
+			{
+				"groups": [
+					"builtin",
+					[ "external", "unknown" ],
+					"internal",
+					"parent",
+					"sibling",
+					"index"
+				]
+			}
+		],
 		"jsdoc/check-indentation": "error",
+		"react/no-array-index-key": "warn",
+		"react/prop-types": "error",
+		"react-hooks/rules-of-hooks": "error",
+		"react-hooks/exhaustive-deps": [
+			"error",
+			{
+				"additionalHooks": "useSelect"
+			}
+		],
 		"@wordpress/dependency-group": "error",
-		"@wordpress/react-no-unsafe-timeout": "error"
+		"@wordpress/react-no-unsafe-timeout": "error",
+		"@wordpress/i18n-text-domain": [
+			"error",
+			{
+				"allowedTextDomain": "xwp-country-card"
+			}
+		],
+		"@wordpress/valid-sprintf": "error"
 	}
 }

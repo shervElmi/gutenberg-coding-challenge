@@ -1,0 +1,7 @@
+assets
+build
+includes
+node_modules
+vendor
+/*.js
+/*.cjs
