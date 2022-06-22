@@ -27,7 +27,7 @@ import {
 /**
  * Internal dependencies
  */
-import './editor.scss';
+import './sass/editor.scss';
 import { countries } from './dataUtils';
 import { getEmojiFlag } from './utils';
 import { CountryCardPreview } from './components';

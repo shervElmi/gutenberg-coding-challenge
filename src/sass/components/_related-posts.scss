@@ -1,0 +1,40 @@
+@use "../abstracts";
+
+.xwp-country-card-related-posts {
+	$self: &;
+
+	padding: 1.5rem;
+	border-top: 1px solid abstracts.$color__border-card;
+	background-color: abstracts.$color__background-posts;
+
+	#{ $self }__heading {
+		margin: 0;
+		font-size: abstracts.$font__size-posts-heading;
+	}
+
+	&__list {
+		padding-left: 1.5rem;
+	}
+
+	&__item + &__item {
+		margin-top: 1.6rem;
+	}
+
+	#{ $self }__title {
+		margin: 0;
+		font-size: abstracts.$font__size-posts-title;
+	}
+
+	&__excerpt {
+		margin: 0;
+
+		p {
+			max-width: 100%;
+			margin-top: 0.1875rem;
+			font-size: abstracts.$font__size-posts-excerpt;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+	}
+}

@@ -1,0 +1,7 @@
+@use "../abstracts";
+
+.xwp-country-card__loader {
+	border-top: 1px solid abstracts.$color__border-card;
+	background-color: abstracts.$color__background-posts;
+	padding: 1.5rem;
+}
