@@ -7,40 +7,42 @@
 	"category": "widgets",
 	"icon": "admin-site",
 	"description": "Block rendering a card with country information.",
+	"keywords": [ "xwp", "country", "card" ],
 	"supports": {
 		"align": true
 	},
 	"attributes": {
 		"countryCode": {
 			"type": "string",
-			"source": "html",
+			"source": "text",
 			"selector": ".xwp-country-card__country-code"
 		},
 		"relatedPosts": {
 			"type": "array",
+			"default": [],
 			"source": "query",
-			"selector": ".related-post",
+			"selector": ".xwp-country-card-related-posts__item",
 			"query": {
 				"title": {
 					"type": "string",
-					"selector": ".title",
-					"source": "text"
+					"source": "text",
+					"selector": ".xwp-country-card-related-posts__title"
 				},
 				"excerpt": {
 					"type": "string",
-					"selector": ".excerpt",
-					"source": "text"
+					"source": "html",
+					"selector": ".xwp-country-card-related-posts__excerpt"
 				},
 				"link": {
 					"type": "string",
-					"selector": ".link",
 					"source": "attribute",
+					"selector": ".xwp-country-card-related-posts__link",
 					"attribute": "href"
 				},
 				"id": {
 					"type": "string",
-					"selector": ".link",
 					"source": "attribute",
+					"selector": ".xwp-country-card-related-posts__link",
 					"attribute": "data-post-id"
 				}
 			}
