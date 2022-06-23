@@ -9,10 +9,60 @@
  * Author URI:        https://github.com/xwp
  * Text Domain:       xwp-country-card
  *
- * @package           CountryCard
+ * @package           XWP/Country_Card
  */
 
-namespace XWP\CountryCard;
+namespace XWP\Country_Card;
+
+/**
+ * As this is the only PHP file having side effects, we need to provide a
+ * safeguard, So we want to make sure this file is only run from within
+ * WordPress and cannot be directly called through a web request.
+ */
+if ( ! defined( 'ABSPATH' ) ) {
+	die();
+}
+
+use WP_Error;
+
+define( 'COUNTRY_CARD_FILE', __FILE__ );
+define( 'COUNTRY_CARD_PATH', plugin_dir_path( COUNTRY_CARD_FILE ) );
+define( 'COUNTRY_CARD_MINIMUM_PHP_VERSION', '5.6' );
+define( 'COUNTRY_CARD_MINIMUM_WP_VERSION', '5.8' );
+
+/**
+ * Setup country card requirements class.
+ */
+require_once COUNTRY_CARD_PATH . '/includes/Compatibility/Plugin_Requirements.php';
+
+$plugin_requirements = new Plugin_Requirements( new WP_Error() );
+
+$plugin_requirements->set_php_version( COUNTRY_CARD_MINIMUM_PHP_VERSION );
+$plugin_requirements->set_wp_version( COUNTRY_CARD_MINIMUM_WP_VERSION );
+$plugin_requirements->set_required_files(
+	[
+		COUNTRY_CARD_PATH . '/build/block.json',
+	]
+);
+
+$plugin_requirements->run_checks();
+
+/**
+ * We must stop further execution, If there is an error and
+ * displays an admin notice that show why the plugin is unable to load.
+ */
+if ( $plugin_requirements->get_wp_error()->errors ) {
+	require_once COUNTRY_CARD_PATH . '/includes/Admin/Admin_Notice.php';
+
+	$admin_notice = new Admin_Notice( $plugin_requirements->get_wp_error() );
+	$admin_notice->register();
+
+	unset( $admin_notice );
+
+	return;
+}
+
+unset( $plugin_requirements );
 
 /**
  * Register the block.
@@ -49,7 +99,7 @@ add_action( 'init', __NAMESPACE__ . '\\disable_emojis' );
  * @return array Difference between the two arrays.
  */
 function remove_emoji_dns_prefetch( $urls, $relation_type ) {
-	if ( 'dns-prefetch' == $relation_type ) {
+	if ( 'dns-prefetch' === $relation_type ) {
 		/** This filter is documented in wp-includes/formatting.php */
 		$emoji_svg_url = apply_filters( 'emoji_svg_url', 'https://s.w.org/images/core/emoji/2/svg/' );
 

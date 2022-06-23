@@ -1,0 +1,52 @@
+@use "../abstracts";
+
+.xwp-country-card {
+	$self: &;
+
+	border: 1px solid abstracts.$color__border-card;
+	box-shadow: 0 1px 1px abstracts.$color__shadow-card;
+
+	&__media {
+
+		@include abstracts.flex-center;
+
+		height: calc(200px + 5vw);
+		position: relative;
+		border-bottom: 1px solid #dcdcde;
+		margin: 0;
+		overflow: hidden;
+
+		&::before {
+
+			@include abstracts.flex-center;
+
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			font-size: 50rem;
+			pointer-events: none;
+			content: attr(data-emoji-flag);
+			filter: blur(3vh) saturate(3) contrast(1) opacity(0.4);
+		}
+	}
+
+	&__flag {
+		z-index: 2;
+		font-size: abstracts.$font__size-card-emoji-flag;
+		line-height: 1;
+	}
+
+	#{ $self }__heading {
+		padding: 1.5rem;
+		margin: 0;
+		font-size: abstracts.$font__size-card-heading;
+	}
+
+	&__country-code {
+		display: inline-block;
+		border-bottom: 0.25rem dotted;
+		line-height: 1;
+	}
+}

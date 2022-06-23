@@ -1,82 +1,233 @@
-import countries from '../assets/countries.json';
-import './editor.scss';
-import { edit, globe } from '@wordpress/icons';
-import { BlockControls } from '@wordpress/block-editor';
-import { ComboboxControl, Placeholder, ToolbarButton, ToolbarGroup } from '@wordpress/components';
+/**
+ * External dependencies
+ */
+import PropTypes from 'prop-types';
+
+/**
+ * WordPress dependencies
+ */
+import { edit as editIcon, globe as globeIcon } from '@wordpress/icons';
+import { __, _x, sprintf } from '@wordpress/i18n';
+import { useSelect } from '@wordpress/data';
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from '@wordpress/element';
+import { BlockControls, useBlockProps } from '@wordpress/block-editor';
+import {
+	ComboboxControl,
+	Placeholder,
+	ToolbarButton,
+	ToolbarGroup,
+} from '@wordpress/components';
+
+/**
+ * Internal dependencies
+ */
+import './sass/editor.scss';
+import { countries } from './dataUtils';
 import { getEmojiFlag } from './utils';
-import { useEffect, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
-import Preview from './preview';
+import { CountryCardPreview } from './components';
 
-export default function Edit( { attributes, setAttributes } ) {
-	const { countryCode, relatedPosts } = attributes;
-	const options = Object.keys(countries).map(code => ({
-        value: code,
-        label:  getEmojiFlag( code ) + '  ' + countries[code] + ' — ' + code
-	}));
+/**
+ * Edit component.
+ *
+ * @param {Object}   root0                         Component props.
+ * @param {Object}   root0.attributes              Block attributes.
+ * @param {Object}   root0.attributes.countryCode  Code of country.
+ * @param {Object}   root0.attributes.relatedPosts Posts that include selected country name.
+ * @param {Function} root0.setAttributes           Callable function for saving attribute values.
+ * @return {*} JSX markup for the editor.
+ */
+function Edit( { attributes: { countryCode, relatedPosts }, setAttributes } ) {
+	const [ isChangeCountryVisible, setIsChangeCountryVisible ] = useState(
+		! Boolean( countryCode )
+	);
 
-	const [ isPreview, setPreview ] = useState();
+	const currentPostID = useSelect( ( select ) => {
+		return select( 'core/editor' ).getCurrentPostId();
+	}, [] );
 
-	useEffect( () => setPreview( countryCode ), [ countryCode ] );
+	const firstCountryCode = useRef( countryCode );
 
-	const handleChangeCountry = () => {
-		if ( isPreview ) setPreview( false );
-		else if ( countryCode ) setPreview( true );
-	};
+	const getRelatedPosts = useCallback(
+		( posts ) => {
+			if ( ! Array.isArray( posts ) ) {
+				return [];
+			}
 
-	const handleChangeCountryCode = newCountryCode => {
-		if ( newCountryCode && countryCode !== newCountryCode ) {
-			setAttributes( {
-				countryCode: newCountryCode,
-				relatedPosts: [],
-			} );
-		}
-	};
+			return posts
+				.filter( ( post ) => Number( post.id ) !== currentPostID )
+				.map( ( post ) => {
+					return {
+						id: post.id,
+						title: post.title?.rendered ?? '',
+						excerpt: post.excerpt?.rendered ?? '',
+						link: post.link,
+					};
+				} );
+		},
+		[ currentPostID ]
+	);
+
+	const { _relatedPosts, isFetchingPosts } = useSelect(
+		( select ) => {
+			if ( ! countryCode ) {
+				return { _relatedPosts: [], isFetchingPosts: false };
+			}
+
+			if ( firstCountryCode.current === countryCode ) {
+				return { _relatedPosts: relatedPosts, isFetchingPosts: false };
+			}
+
+			const { getEntityRecords } = select( 'core' );
+
+			const query = {
+				search: countries[ countryCode ],
+				orderby: 'date',
+				order: 'desc',
+				status: 'publish',
+			};
+
+			const posts = getEntityRecords( 'postType', 'post', query );
+			// The `select( 'core/data' ).isResolving` returns false at the first run loop
+			// and we can not have an optimal HTTP request by checking the current countryCode!
+			// Since this plugin is a Gutenberg coding challenge, I did not use the `@wordpress/api-fetch`.
+			// I prefer the following code to use the `useSelect` hook.
+			const isResolving = ! Array.isArray( posts );
+
+			if ( ! isResolving ) {
+				firstCountryCode.current = countryCode;
+			}
+
+			return {
+				_relatedPosts: getRelatedPosts( posts ),
+				isFetchingPosts: isResolving,
+			};
+		},
+		[ countryCode, getRelatedPosts, relatedPosts, firstCountryCode ]
+	);
 
 	useEffect( () => {
-		async function getRelatedPosts() {
-			const postId = window.location.href.match( /post=([\d]+)/ )[ 1 ];
-			const response = await window.fetch( `/wp-json/wp/v2/posts?search=${ countries[ countryCode ] }&exclude=${ postId }` );
-
-			if ( ! response.ok )
-				throw new Error( `HTTP error! Status: ${ response.status }` );
-
-			const posts = await response.json();
-
-			setAttributes( {
-				relatedPosts: posts?.map( ( relatedPost ) => ( {
-					...relatedPost,
-					title: relatedPost.title?.rendered || relatedPost.link,
-					excerpt: relatedPost.excerpt?.rendered || '',
-				} ) ) || [],
-			} );
+		if ( ! _relatedPosts?.length ) {
+			return;
 		}
 
-		getRelatedPosts();
-	}, [countryCode, setAttributes] );
+		// I save Related Posts because the coding challenge description said that:
+		// "It is okay for the related posts in the card footer to be static when viewed on the frontend."
+		setAttributes( {
+			relatedPosts: _relatedPosts,
+		} );
+	}, [ _relatedPosts, setAttributes ] );
+
+	const handleCountryChange = useCallback( () => {
+		setIsChangeCountryVisible( ! isChangeCountryVisible );
+	}, [ setIsChangeCountryVisible, isChangeCountryVisible ] );
+
+	const onSelectCountry = useCallback(
+		( newCountryCode ) => {
+			if ( newCountryCode && countryCode !== newCountryCode ) {
+				setAttributes( {
+					countryCode: newCountryCode,
+					relatedPosts: [],
+				} );
+
+				setIsChangeCountryVisible( false );
+			}
+		},
+		[ countryCode, setIsChangeCountryVisible, setAttributes ]
+	);
+
+	const countryOptions = useMemo(
+		() =>
+			Object.keys( countries ).map( ( code ) => ( {
+				value: code,
+				label: sprintf(
+					/* translators: 1: Flag of country. 2: Name of country */
+					__( '%1$s %2$s — code', 'xwp-country-card' ),
+					getEmojiFlag( code ),
+					countries[ code ]
+				),
+			} ) ),
+		[]
+	);
+
+	const blockProps = useBlockProps();
 
 	return (
-		<>
+		<div { ...blockProps }>
 			<BlockControls>
 				<ToolbarGroup>
-						<ToolbarButton label={ __( 'Change Country', 'xwp-country-card' ) }
-							icon={ edit } onClick={ handleChangeCountry } disabled={ ! Boolean( countryCode ) } />
+					<ToolbarButton
+						label={ _x(
+							'Change Country',
+							'block control label',
+							'xwp-country-card'
+						) }
+						icon={ editIcon }
+						onClick={ handleCountryChange }
+						disabled={ ! Boolean( countryCode ) }
+					/>
 				</ToolbarGroup>
 			</BlockControls>
-			<div>
-				{ isPreview ? <Preview countryCode={ countryCode } relatedPosts={ relatedPosts }/> : <Placeholder icon={ globe } label={ __( 'XWP Country Card', 'xwp-country-card' ) }
-								 isColumnLayout={ true }
-								 instructions={ __( 'Type in a name of a contry you want to display on you site.', 'xwp-country-card' ) }>
-						<ComboboxControl
-							label={ __( 'Country', 'xwp-country-card' ) }
-                            hideLabelFromVision
-							options={ options }
-							value={ countryCode }
-							onChange={ handleChangeCountryCode }
-                            allowReset={true}
-						/>
-					</Placeholder> }
-			</div>
-		</>
+
+			{ isChangeCountryVisible ? (
+				<Placeholder
+					icon={ globeIcon }
+					label={ _x(
+						'XWP Country Card',
+						'block placeholder label',
+						'xwp-country-card'
+					) }
+					isColumnLayout={ true }
+					instructions={ __(
+						'Type in a name of a country you want to display on your site.',
+						'xwp-country-card'
+					) }
+				>
+					<ComboboxControl
+						label={ _x(
+							'Country',
+							'block control title',
+							'xwp-country-card'
+						) }
+						hideLabelFromVision
+						options={ countryOptions }
+						value={ countryCode }
+						onChange={ onSelectCountry }
+						allowReset={ true }
+					/>
+				</Placeholder>
+			) : (
+				<CountryCardPreview
+					countryCode={ countryCode }
+					relatedPosts={ relatedPosts }
+					isFetchingPosts={ isFetchingPosts }
+				/>
+			) }
+		</div>
 	);
 }
+
+Edit.propTypes = {
+	attributes: PropTypes.shape( {
+		countryCode: PropTypes.string,
+		relatedPosts: PropTypes.arrayOf(
+			PropTypes.shape( {
+				id: PropTypes.oneOfType( [
+					PropTypes.string,
+					PropTypes.number,
+				] ),
+				title: PropTypes.string,
+				excerpt: PropTypes.string,
+				link: PropTypes.string,
+			} ).isRequired
+		),
+	} ),
+	setAttributes: PropTypes.func.isRequired,
+};
+
+export default Edit;
